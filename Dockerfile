@@ -1,32 +1,21 @@
-FROM node:22-alpine AS builder
+FROM node:22-alpine
 
+# 1. Répertoire de travail
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
+# 2. Copier les fichiers de dépendances + Prisma schema
+COPY package.json package-lock.json ./
+COPY prisma ./prisma
+
+# 3. Installer les dépendances (déclenche aussi "postinstall" -> prisma generate)
 RUN npm install
 
+# 4. Copier le reste du code (TS, config)
 COPY tsconfig.json ./
-COPY prisma ./prisma
 COPY src ./src
 
-RUN npx prisma generate
+# 5. Builder le projet TypeScript
 RUN npm run build
 
-FROM node:22-alpine AS runner
-
-WORKDIR /app
-
-ENV NODE_ENV=production
-
-COPY package.json package-lock.json* ./
-RUN npm install --omit=dev
-
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/dist ./dist
-
-ENV PORT=3000
-
-EXPOSE 3000
-
+# 6. Commande de démarrage
 CMD ["node", "dist/server.js"]
