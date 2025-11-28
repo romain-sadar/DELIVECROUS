@@ -16,12 +16,15 @@ model User {
   role         String    @default("STUDENT")
   createdAt    DateTime  @default(now())
   commandes    Commande[]
+
+  // Pour les refresh tokens JWT
+  refreshToken String?
 }
 
 model PointLivraison {
   id          Int         @id @default(autoincrement())
   nom         String
-  typePoint   String      
+  typePoint   String
   adresse     String?
   latitude    Float?
   longitude   Float?
@@ -45,9 +48,9 @@ model Commande {
   id               Int             @id @default(autoincrement())
   userId           Int
   pointLivraisonId Int
-  statut           String         
+  statut           String
   total            Decimal
-  modePaiement     String          
+  modePaiement     String
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 

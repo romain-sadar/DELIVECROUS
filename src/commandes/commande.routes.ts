@@ -1,61 +1,31 @@
-import { Router } from "express";
-import {
-  createCommande,
-  getCommandeById,
-  listCommandesByUser,
-} from "./commande.service";
+import { Router } from 'express';
+import { authMiddleware } from '../middleware/auth.middleware';
+import { createCommande, listCommandesByUser } from './commande.service';
 
 const router = Router();
 
-router.post("/", async (req, res, next) => {
+router.post('/', authMiddleware, async (req, res, next) => {
   try {
-    const { user_id, point_livraison_id, mode_paiement, items } = req.body;
-
-    if (!user_id || !point_livraison_id || !mode_paiement || !items) {
-      return res.status(400).json({
-        error: "user_id, point_livraison_id, mode_paiement et items sont requis",
-      });
-    }
+    const user = (req as any).user;
+    const payload = req.body;
 
     const commande = await createCommande({
-      userId: Number(user_id),
-      pointLivraisonId: Number(point_livraison_id),
-      modePaiement: mode_paiement,
-      items,
+      ...payload,
+      userId: user.userId,
     });
 
-    res.status(201).json(commande);
-  } catch (err: any) {
-    next(err);
-  }
-});
-
-router.get("/", async (req, res, next) => {
-  try {
-    const userId = req.query.user_id;
-    if (!userId) {
-      return res
-        .status(400)
-        .json({ error: "user_id query param is required" });
-    }
-
-    const commandes = await listCommandesByUser(Number(userId));
-    res.json(commandes);
+    return res.status(201).json(commande);
   } catch (err) {
     next(err);
   }
 });
 
-router.get("/:id", async (req, res, next) => {
+router.get('/me', authMiddleware, async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-    const commande = await getCommandeById(id);
+    const user = (req as any).user;
 
-    if (!commande) {
-      return res.status(404).json({ error: "Commande non trouvée" });
-    }
-
-    res.json(commande);
+    const commandes = await listCommandesByUser(user.userId);
+    return res.json(commandes);
   } catch (err) {
     next(err);
   }

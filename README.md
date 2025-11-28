@@ -14,6 +14,11 @@ POSTGRES_DB=delivecrous_livraison
 
 DATABASE_URL=postgresql://delivecrous:delivecrous@db:5432/delivecrous_livraison?schema=public
 
+JWT_ACCESS_SECRET=super-secret-access-key-change-me
+JWT_REFRESH_SECRET=super-secret-refresh-key-change-me
+JWT_ACCESS_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+
 ## Docker compose
 docker-compose up --build
 
