@@ -8,11 +8,63 @@ generator client {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
   passwordHash String
   firstName    String
   lastName     String
-  role         String   @default("STUDENT")
-  createdAt    DateTime @default(now())
+  role         String    @default("STUDENT")
+  createdAt    DateTime  @default(now())
+  commandes    Commande[]
+}
+
+model PointLivraison {
+  id          Int         @id @default(autoincrement())
+  nom         String
+  typePoint   String      
+  adresse     String?
+  latitude    Float?
+  longitude   Float?
+  actif       Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  commandes   Commande[]
+}
+
+model Plat {
+  id          Int             @id @default(autoincrement())
+  libelle     String
+  description String?
+  prix        Decimal
+  categorie   String?
+  disponible  Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  items       CommandeItem[]
+}
+
+model Commande {
+  id               Int             @id @default(autoincrement())
+  userId           Int
+  pointLivraisonId Int
+  statut           String         
+  total            Decimal
+  modePaiement     String          
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  user           User           @relation(fields: [userId], references: [id])
+  pointLivraison PointLivraison @relation(fields: [pointLivraisonId], references: [id])
+  items          CommandeItem[]
+}
+
+model CommandeItem {
+  id           Int       @id @default(autoincrement())
+  commandeId   Int
+  platId       Int
+  quantite     Int
+  prixUnitaire Decimal
+
+  commande     Commande  @relation(fields: [commandeId], references: [id])
+  plat         Plat      @relation(fields: [platId], references: [id])
+
+  @@unique([commandeId, platId])
 }
