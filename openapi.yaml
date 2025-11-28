@@ -1,0 +1,454 @@
+openapi: 3.1.0
+info:
+  title: DeliveCROUS API
+  description: >
+    API de commande de plats pour le CROUS.
+    Authentification JWT, gestion des plats, des commandes et des points de livraison.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    AuthRegisterRequest:
+      type: object
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 6
+        name:
+          type: string
+
+    AuthLoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+
+    Plat:
+      type: object
+      properties:
+        id:
+          type: integer
+        libelle:
+          type: string
+        description:
+          type: string
+        prix:
+          type: number
+          format: float
+        disponible:
+          type: boolean
+        categorie:
+          type: string
+
+    CreatePlatRequest:
+      type: object
+      required: [libelle, prix]
+      properties:
+        libelle:
+          type: string
+        description:
+          type: string
+        prix:
+          type: number
+          format: float
+        disponible:
+          type: boolean
+          default: true
+        categorie:
+          type: string
+
+    UpdatePlatRequest:
+      type: object
+      properties:
+        libelle:
+          type: string
+        description:
+          type: string
+        prix:
+          type: number
+          format: float
+        disponible:
+          type: boolean
+        categorie:
+          type: string
+
+    PointLivraison:
+      type: object
+      properties:
+        id:
+          type: integer
+        nom:
+          type: string
+        adresse:
+          type: string
+        actif:
+          type: boolean
+
+    CommandeItemInput:
+      type: object
+      required: [plat_id, quantite]
+      properties:
+        plat_id:
+          type: integer
+        quantite:
+          type: integer
+          minimum: 1
+
+    CreateCommandeRequest:
+      type: object
+      required:
+        - user_id
+        - point_livraison_id
+        - mode_paiement
+        - items
+      properties:
+        user_id:
+          type: integer
+        point_livraison_id:
+          type: integer
+        mode_paiement:
+          type: string
+          example: "CB"
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommandeItemInput'
+
+    CommandeItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        platId:
+          type: integer
+        quantite:
+          type: integer
+        prixUnitaire:
+          type: number
+          format: float
+
+    Commande:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        pointLivraisonId:
+          type: integer
+        statut:
+          type: string
+          example: "PENDING"
+        modePaiement:
+          type: string
+        total:
+          type: number
+          format: float
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommandeItem'
+        pointLivraison:
+          $ref: '#/components/schemas/PointLivraison'
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      tags: [Health]
+      responses:
+        '200':
+          description: API is up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  env:
+                    type: string
+                    example: test
+
+  /api/auth/register:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRegisterRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Validation error
+        '409':
+          description: Email already exists
+
+  /api/auth/login:
+    post:
+      summary: Login and obtain JWT tokens
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthLoginRequest'
+      responses:
+        '200':
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+
+  /api/plats:
+    get:
+      summary: List available plats
+      tags: [Plats]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+          required: false
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+          required: false
+      responses:
+        '200':
+          description: List of plats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Plat'
+    post:
+      summary: Create a new plat
+      tags: [Plats]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePlatRequest'
+      responses:
+        '201':
+          description: Plat created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plat'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+
+  /api/plats/{id}:
+    get:
+      summary: Get a plat by ID
+      tags: [Plats]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Plat found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plat'
+        '404':
+          description: Plat not found
+    patch:
+      summary: Update an existing plat
+      tags: [Plats]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePlatRequest'
+      responses:
+        '200':
+          description: Updated plat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plat'
+        '400':
+          description: Validation error
+        '404':
+          description: Plat not found
+    delete:
+      summary: Delete a plat
+      tags: [Plats]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Plat deleted
+        '404':
+          description: Plat not found
+
+  /api/points-livraison:
+    get:
+      summary: List active delivery points
+      tags: [Points de livraison]
+      responses:
+        '200':
+          description: List of points de livraison
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PointLivraison'
+
+  /api/commandes:
+    post:
+      summary: Create a new commande
+      tags: [Commandes]
+      # Si authentification obligatoire, décommente :
+      # security:
+      #   - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommandeRequest'
+      responses:
+        '201':
+          description: Commande created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Commande'
+        '400':
+          description: Validation error or business rule failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: List commandes for the authenticated user
+      tags: [Commandes]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of commandes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Commande'
+
+  /api/commandes/{id}:
+    get:
+      summary: Get a commande by ID
+      tags: [Commandes]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Commande found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Commande'
+        '404':
+          description: Commande not found
