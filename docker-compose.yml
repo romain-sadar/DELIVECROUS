@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: delivecrous_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-delivecrous}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-delivecrous}
+      POSTGRES_DB: ${POSTGRES_DB:-delivecrous_livraison}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - delivecrous_net
+
+  app:
+    build: .
+    container_name: delivecrous_app
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://delivecrous:delivecrous@db:5432/delivecrous_livraison?schema=public
+    ports:
+      - "3000:3000"
+    networks:
+      - delivecrous_net
+
+networks:
+  delivecrous_net:
+
+volumes:
+  pgdata:
