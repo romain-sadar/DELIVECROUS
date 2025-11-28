@@ -19,3 +19,8 @@ docker-compose up --build
 
 ## Tester avec /health/
 curl http://localhost:3000/health
+
+## Documentation API
+
+- JSON OpenAPI : `GET /api/openapi.json`
+- Swagger UI : `GET /api/docs`
